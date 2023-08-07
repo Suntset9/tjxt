@@ -3,17 +3,16 @@ package com.tianji.learning.controller;
 
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.domain.query.PageQuery;
+import com.tianji.learning.domain.dto.LearningPlanDTO;
 import com.tianji.learning.domain.vo.LearningLessonVO;
+import com.tianji.learning.domain.vo.LearningPlanPageVO;
 import com.tianji.learning.service.ILearningLessonService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.checkerframework.checker.units.qual.C;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * <p>
@@ -51,7 +50,7 @@ public class LearningLessonController {
      */
     @ApiOperation("校验当前用户是否可以学习当前课程")
     @GetMapping("/{courseId}/valid")
-    Long isLessonValid(@PathVariable("courseId") Long courseId){
+    public Long isLessonValid(@PathVariable("courseId") Long courseId){
         return lessonService.isLessonValid(courseId);
     }
 
@@ -73,8 +72,24 @@ public class LearningLessonController {
      */
     @ApiOperation("统计课程学习人数")
     @GetMapping("/{courseId}/count")
-    Integer countLearningLessonByCourse(@PathVariable("courseId") Long courseId){
+    public Integer countLearningLessonByCourse(@PathVariable("courseId") Long courseId){
         return lessonService.countLearningLessonByCourse(courseId);
+    }
+
+    /**
+     * 创建学习计划
+     * @param dto 接收前端参数保存到数据库
+     */
+    @ApiOperation("创建学习计划")
+    @PostMapping("/plans")
+    public void createLearningPlans(@RequestBody @Validated LearningPlanDTO dto){
+        lessonService.createLearningPlans(dto);
+    }
+
+    @GetMapping("/plans")
+    @ApiOperation("查询学习计划进度")
+    public LearningPlanPageVO queryMyPlans (PageQuery query){
+        return lessonService.queryMyPlans(query);
     }
 
 }
