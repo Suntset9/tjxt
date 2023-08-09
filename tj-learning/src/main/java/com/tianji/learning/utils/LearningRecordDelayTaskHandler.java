@@ -18,8 +18,7 @@ import javax.annotation.PreDestroy;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.DelayQueue;
+import java.util.concurrent.*;
 
 @Slf4j
 @Component
@@ -32,6 +31,15 @@ public class LearningRecordDelayTaskHandler {
     private final LearningRecordMapper recordMapper;
     private final ILearningLessonService lessonService;
     private static volatile boolean begin = true;
+
+    static ThreadPoolExecutor poolExecutor = new ThreadPoolExecutor(
+            28,
+            30,
+            60,
+            TimeUnit.SECONDS,
+            new LinkedBlockingDeque<>(10));
+
+
     //@PostConstruct 项目启动后 当前类实例化 属性注入值后 方法就会运行 一般用来做初始化工作
     @PostConstruct
     public void init(){
@@ -47,28 +55,35 @@ public class LearningRecordDelayTaskHandler {
             try {
                 // 1.尝试获取任务
                 DelayTask<RecordTaskData> task = queue.take();
-                RecordTaskData data = task.getData();
-                // 2.读取Redis缓存
-                LearningRecord record = readRecordCache(data.getLessonId(), data.getSectionId());
-                log.debug("获取到要处理的播放记录任务  任务数据{}  缓存中的数据{}",data,record);
-                if (record == null) {
-                    continue;
-                }
-                // 3.比较数据
-                if(!Objects.equals(data.getMoment(), record.getMoment())){
-                    // 4.如果不一致，播放进度在变化，无需持久化
-                    continue;
-                }
-                // 5.如果一致，证明用户离开了视频，需要持久化
-                // 5.1.更新学习记录
-                record.setFinished(null);
-                recordMapper.updateById(record);
-                // 5.2.更新课表
-                LearningLesson lesson = new LearningLesson();
-                lesson.setId(data.getLessonId());
-                lesson.setLatestSectionId(data.getSectionId());
-                lesson.setLatestLearnTime(LocalDateTime.now());
-                lessonService.updateById(lesson);
+                poolExecutor.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        RecordTaskData data = task.getData();
+                        // 2.读取Redis缓存
+                        LearningRecord record = readRecordCache(data.getLessonId(), data.getSectionId());
+                        log.debug("获取到要处理的播放记录任务  任务数据{}  缓存中的数据{}",data,record);
+                        if (record == null) {
+                            return;
+                        }
+                        // 3.比较数据
+                        if(!Objects.equals(data.getMoment(), record.getMoment())){
+                            // 4.如果不一致，播放进度在变化，无需持久化
+                            return;
+                        }
+                        // 5.如果一致，证明用户离开了视频，需要持久化
+                        // 5.1.更新学习记录
+                        record.setFinished(null);
+                        recordMapper.updateById(record);
+                        // 5.2.更新课表
+                        LearningLesson lesson = new LearningLesson();
+                        lesson.setId(data.getLessonId());
+                        lesson.setLatestSectionId(data.getSectionId());
+                        lesson.setLatestLearnTime(LocalDateTime.now());
+                        lessonService.updateById(lesson);
+                    }
+                });
+
+
 
                 log.debug("准备持久化学习记录信息");
             } catch (Exception e) {
