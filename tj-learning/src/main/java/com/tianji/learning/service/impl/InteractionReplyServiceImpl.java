@@ -2,6 +2,7 @@ package com.tianji.learning.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.tianji.api.client.remark.RemarkClient;
 import com.tianji.api.client.user.UserClient;
 import com.tianji.api.dto.user.UserDTO;
 import com.tianji.common.constants.MqConstants;
@@ -47,6 +48,8 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
 
     private final InteractionQuestionMapper questionMapper;
     private final UserClient userClient;
+
+    private final RemarkClient remarkClient;
 
     @Override
     public void saveReply(ReplyDTO dto) {
@@ -127,13 +130,15 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
             return PageDTO.empty(0L,0L);
         }
         //3.补全其他数据
-        Set<Long> uids = new HashSet<>();
-        Set<Long> targetReplIds = new HashSet<>();
+        Set<Long> uids = new HashSet<>();//userid
+        Set<Long> targetReplIds = new HashSet<>();//回复的目标id
+        Set<Long> answerIds = new HashSet<>();//互动问答的id
         for (InteractionReply record : records) {
             if (!record.getAnonymity()){
                 uids.add(record.getUserId());
                 uids.add(record.getTargetUserId());
             }
+            answerIds.add(record.getId());
             if (record.getTargetReplyId()!=null && record.getTargetReplyId()>0){
                 targetReplIds.add(record.getTargetReplyId());
             }
@@ -155,6 +160,9 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
             userDTOMap = userDTOList.stream().collect(Collectors.toMap(UserDTO::getId, c -> c));
         }
 
+        //4.1 查询用户点赞状态
+        Set<Long> bizLiked = remarkClient.isBizLiked(answerIds);
+
         //封装vo返回
         List<ReplyVO> voList = new ArrayList<>();
         for (InteractionReply record : records) {
@@ -169,6 +177,10 @@ public class InteractionReplyServiceImpl extends ServiceImpl<InteractionReplyMap
             }
             UserDTO userDTO = userDTOMap.get(record.getTargetUserId());
             vo.setTargetUserName(userDTO.getName());
+
+            vo.setLikedTimes(record.getLikedTimes());
+            //点赞状态
+            vo.setLiked(bizLiked.contains(record.getId()));
 
             voList.add(vo);
         }
