@@ -37,7 +37,7 @@ public class CollUtils extends CollectionUtil {
         return CollUtils.isNotEmpty(originList) ? originList.stream().map(NumberUtils::parseInt).collect(Collectors.toList()) : null;
     }
 
-    public static List<Long> convertToLong(List<String> originLIst){
+    public static List<Long> convFertToLong(List<String> originLIst){
         return CollUtils.isNotEmpty(originLIst) ? originLIst.stream().map(NumberUtils::parseLong).collect(Collectors.toList()) : null;
     }
 

@@ -20,9 +20,9 @@ public class CategoryCache {
     private final CategoryClient categoryClient;
 
     public Map<Long, CategoryBasicDTO> getCategoryMap() {
-        return categoryCaches.get("CATEGORY", key -> {
+        return categoryCaches.get("CATEGORY", key -> {//caffeine，如果缓存中没有就从数据库中查
             // 1.从CategoryClient查询
-            List<CategoryBasicDTO> list = categoryClient.getAllOfOneLevel();
+            List<CategoryBasicDTO> list = categoryClient.getAllOfOneLevel();//获取所有课程分类名称
             if (list == null || list.isEmpty()) {
                 return CollUtils.emptyMap();
             }
@@ -30,7 +30,7 @@ public class CategoryCache {
             return list.stream().collect(Collectors.toMap(CategoryBasicDTO::getId, Function.identity()));
         });
     }
-
+    //获取分类的名称 根据分类的id集合
     public String getCategoryNames(List<Long> ids) {
         if (ids == null || ids.size() == 0) {
             return "";
@@ -40,10 +40,10 @@ public class CategoryCache {
         // 2.根据id查询分类名称并组装
         StringBuilder sb = new StringBuilder();
         for (Long id : ids) {
-            sb.append(map.get(id).getName()).append("/");
+            sb.append(map.get(id).getName()).append("/");//拼接
         }
         // 3.返回结果
-        return sb.deleteCharAt(sb.length() - 1).toString();
+        return sb.deleteCharAt(sb.length() - 1).toString();//把最后的/删除
     }
 
     public List<String> getCategoryNameList(List<Long> ids) {

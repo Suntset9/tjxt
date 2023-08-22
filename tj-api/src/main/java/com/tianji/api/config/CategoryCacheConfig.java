@@ -25,7 +25,7 @@ public class CategoryCacheConfig {
     /**
      * 课程分类的缓存工具类
      */
-    @Bean
+    @Bean//一般用来声明第三方的bean，方法如果有参数，会按类型自动注入
     public CategoryCache categoryCache(
             Cache<String, Map<Long, CategoryBasicDTO>> categoryCaches, CategoryClient categoryClient){
         return new CategoryCache(categoryCaches, categoryClient);

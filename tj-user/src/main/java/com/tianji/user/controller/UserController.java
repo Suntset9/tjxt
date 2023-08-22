@@ -80,7 +80,7 @@ public class UserController {
 
     @ApiOperation("根据id查询用户信息")
     @GetMapping("/{id}")
-    public UserDTO queryUserById(
+    public UserDTO querqueryUserByIdsyUserById(
             @ApiParam("用户id") @PathVariable("id") Long id) {
         UserDetail userDetail = detailService.queryById(id);
         return BeanUtils.copyBean(userDetail, UserDTO.class, (d, u) -> u.setType(d.getType().getValue()));
