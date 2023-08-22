@@ -1,6 +1,7 @@
 package com.song;
 
 import com.tianji.learning.LearningApplication;
+import com.tianji.learning.constants.RedisConstants;
 import lombok.RequiredArgsConstructor;
 import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,8 @@ import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @SpringBootTest(classes = LearningApplication.class)
@@ -40,6 +43,22 @@ public class RedisBitMapTest {
 
     }
 
+    @Test
+    public void test2(){
+        //拼接key
+        LocalDate time = LocalDate.now().minusMonths(1);
+        //计算key
+        String format = time.format(DateTimeFormatter.ofPattern("yyyyMM"));
+        String key = RedisConstants.POINTS_BOARD_KEY_PREFIX + format;//redis查询的key
+
+        for (int i = 1; i <= 20; i++) {
+            redisTemplate.opsForZSet().add(key, String.valueOf(i),i);
+
+        }
+
+
+
+    }
 
 
 }

@@ -4,8 +4,11 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.api.client.course.CourseClient;
+import com.tianji.api.client.promotion.PromotionCilent;
 import com.tianji.api.constants.CourseStatus;
 import com.tianji.api.dto.course.CourseSimpleInfoDTO;
+import com.tianji.api.dto.promotion.CouponDiscountDTO;
+import com.tianji.api.dto.promotion.OrderCourseDTO;
 import com.tianji.api.dto.trade.OrderBasicDTO;
 import com.tianji.common.autoconfigure.mq.RabbitMqHelper;
 import com.tianji.common.constants.MqConstants;
@@ -61,6 +64,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private final ICartService cartService;
     private final TradeProperties tradeProperties;
     private final RabbitMqHelper rabbitMqHelper;
+    private final PromotionCilent promotionCilent;
 
     @Override
     @Transactional
@@ -191,15 +195,27 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         List<OrderCourseVO> courses = BeanUtils.copyList(courseInfos, OrderCourseVO.class);
         // 2.计算总价
         int total = courseInfos.stream().mapToInt(CourseSimpleInfoDTO::getPrice).sum();
-        // TODO 3.计算折扣
-        int discountAmount = 0;
-        // 4.生成订单id
+        // 3.计算折扣 远程调用promotion服务计算优惠金额
+        //int discountAmount = 0;
+        List<OrderCourseDTO> dtos = new ArrayList<>();
+        for (CourseSimpleInfoDTO courseInfo : courseInfos) {
+            OrderCourseDTO dto = new OrderCourseDTO();
+            dto.setId(courseInfo.getId());//课程id
+            dto.setCateId(courseInfo.getThirdCateId());//三级分类id
+            dto.setPrice(courseInfo.getPrice());//课程金额
+            dtos.add(dto);
+        }
+        //远程调用promotion服务计算优惠金额
+        List<CouponDiscountDTO> solution = promotionCilent.findDiscountSolution(dtos);
+
+        // 4.生成订单id 雪花算法生成的主键  订单确认页预订单id 防止订单页面连点
         long orderId = IdWorker.getId();
         // 5.组织返回
         OrderConfirmVO vo = new OrderConfirmVO();
-        vo.setOrderId(orderId);
+        vo.setOrderId(orderId);//避免重复订单
         vo.setTotalAmount(total);
-        vo.setDiscountAmount(discountAmount);
+        //vo.setDiscountAmount(discountAmount);
+        vo.setDiscounts(solution);//优惠方案封装vo返回
         vo.setCourses(courses);
         return vo;
     }
