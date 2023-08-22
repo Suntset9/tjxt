@@ -98,7 +98,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <mainClass>com.tianji.learning.LearningApplication</mainClass>
+                    <mainClass>com.tianji.remark.RemarkApplication</mainClass>
                 </configuration>
             </plugin>
         </plugins>

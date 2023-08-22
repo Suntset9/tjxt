@@ -7,4 +7,9 @@ public interface RedisConstants {
      */
     String SIGN_RECORD_KEY_PREFIX = "sign:uid:";
 
+    /**
+     * 积分排行榜得key得前缀 ： boards:202301
+     */
+    String POINTS_BOARD_KEY_PREFIX = "boards:";
+
 }

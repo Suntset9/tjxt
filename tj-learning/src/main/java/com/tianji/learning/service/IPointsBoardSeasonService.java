@@ -13,4 +13,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IPointsBoardSeasonService extends IService<PointsBoardSeason> {
 
+    void createPointsBoardTableBySeason(Integer id);
 }

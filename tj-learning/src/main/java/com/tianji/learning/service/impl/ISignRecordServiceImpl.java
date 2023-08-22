@@ -17,9 +17,11 @@ import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -36,7 +38,8 @@ public class ISignRecordServiceImpl implements ISignRecordService {
         //1.获取当前用户id
         Long userId = UserContext.getUser();
         //2.拼接key
-        //Siple
+        //SimpleDateFormat format1 = new SimpleDateFormat("yyyyMM");
+        //format1.format(new Date());
         LocalDateTime now = LocalDateTime.now();
         String format = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));//得到 :年月 格式化字符串
         String key = RedisConstants.SIGN_RECORD_KEY_PREFIX + userId.toString() + format;
@@ -111,4 +114,40 @@ public class ISignRecordServiceImpl implements ISignRecordService {
     }
 
 
+    @Override
+    public Byte[] querySignRecords() {
+        //获取用户id
+        Long userId = UserContext.getUser();
+        //2.拼接key
+        LocalDateTime now = LocalDateTime.now();
+        String format = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));//得到 :年月 格式化字符串
+        //sign:uid:2:202305
+        String key = RedisConstants.SIGN_RECORD_KEY_PREFIX + userId.toString() + format;
+
+        //3.利用redis bitfield命令获取本月第一天到今天所有得签到记录
+        int dayOfMonth = now.getDayOfMonth();
+        //bitfield  key get u天数 0
+        List<Long> bitField = redisTemplate.opsForValue()
+                .bitField(key,
+                        BitFieldSubCommands.create().get(BitFieldSubCommands.BitFieldType.unsigned(dayOfMonth))
+                                .valueAt(0));
+
+        if (CollUtils.isEmpty(bitField)){
+            return new Byte[0];
+        }
+
+        Long num = bitField.get(0);
+
+        int offset = dayOfMonth - 1;
+        //4.利用与运算 和 位移  封装结果
+        Byte[] arr = new Byte[dayOfMonth];
+
+        while (offset >= 0){
+            arr[offset] = (byte)(num & 1);//计算最后一天是否签到  赋值结果
+            offset--;
+            num = num >>>1;//右移
+        }
+
+        return arr;
+    }
 }
